@@ -1,524 +1,587 @@
-lo = function(rown, coln, nrow, ncol, cellheight = NA, cellwidth = NA, treeheight_col, treeheight_row, legend, annotation_row, annotation_col, annotation_colors, annotation_legend, annotation_names_row, annotation_names_col, main, fontsize, fontsize_row, fontsize_col, gaps_row, gaps_col, ...){
-    # Get height of colnames and length of rownames
-    if(!is.null(coln[1]) | (!is.na2(annotation_row) & annotation_names_row)){
-        if(!is.null(coln[1])){
-            t = coln
-        } else {
-            t = ""
-        }
-        tw = strwidth(t, units = 'in', cex = fontsize_col / fontsize)
-        if(annotation_names_row){
-            t = c(t, colnames(annotation_row))
-            tw = c(tw, strwidth(colnames(annotation_row), units = 'in'))
-        }
-        longest_coln = which.max(tw)
-        gp = list(fontsize = ifelse(longest_coln <= length(coln), fontsize_col, fontsize), ...)
-        coln_height = unit(1, "grobheight", textGrob(t[longest_coln], rot = 90, gp = do.call(gpar, gp))) + unit(10, "bigpts")
+# add parameter gap_size, gap_color
+library(RColorBrewer)
+library(grid)
+library(gtable)
+lo = function(rown, coln, nrow, ncol, cellheight = NA, cellwidth = NA, treeheight_col, treeheight_row, legend, annotation_row, annotation_col, annotation_colors, annotation_legend, annotation_names_row, annotation_names_col, main, fontsize, fontsize_row, fontsize_col, gaps_row, gaps_col, gap_size, gap_color, ...){
+  # Get height of colnames and length of rownames
+  if(!is.null(coln[1]) | (!is.na2(annotation_row) & annotation_names_row)){
+    if(!is.null(coln[1])){
+      t = coln
+    } else {
+      t = ""
     }
-    else{
-        coln_height = unit(5, "bigpts")
+    tw = strwidth(t, units = 'in', cex = fontsize_col / fontsize)
+    if(annotation_names_row){
+      t = c(t, colnames(annotation_row))
+      tw = c(tw, strwidth(colnames(annotation_row), units = 'in'))
     }
-    
-    if(!is.null(rown[1])){
-        t = rown
-        tw = strwidth(t, units = 'in', cex = fontsize_row / fontsize)
-        if(annotation_names_col){
-            t = c(t, colnames(annotation_col))
-            tw = c(tw, strwidth(colnames(annotation_col), units = 'in'))
-        }
-        longest_rown = which.max(tw)
-        gp = list(fontsize = ifelse(longest_rown <= length(rown), fontsize_row, fontsize), ...)
-        rown_width = unit(1, "grobwidth", textGrob(t[longest_rown], gp = do.call(gpar, gp))) + unit(10, "bigpts")
+    longest_coln = which.max(tw)
+    gp = list(fontsize = ifelse(longest_coln <= length(coln), fontsize_col, fontsize), ...)
+    coln_height = unit(1, "grobheight", textGrob(t[longest_coln], rot = 90, gp = do.call(gpar, gp))) + unit(10, "bigpts")
+  }
+  else{
+    coln_height = unit(5, "bigpts")
+  }
+  
+  if(!is.null(rown[1])){
+    t = rown
+    tw = strwidth(t, units = 'in', cex = fontsize_row / fontsize)
+    if(annotation_names_col){
+      t = c(t, colnames(annotation_col))
+      tw = c(tw, strwidth(colnames(annotation_col), units = 'in'))
     }
-    else{
-        rown_width = unit(5, "bigpts")
+    longest_rown = which.max(tw)
+    gp = list(fontsize = ifelse(longest_rown <= length(rown), fontsize_row, fontsize), ...)
+    rown_width = unit(1, "grobwidth", textGrob(t[longest_rown], gp = do.call(gpar, gp))) + unit(10, "bigpts")
+  }
+  else{
+    rown_width = unit(5, "bigpts")
+  }
+  
+  gp = list(fontsize = fontsize, ...)
+  # Legend position
+  if(!is.na2(legend)){
+    longest_break = which.max(nchar(names(legend)))
+    longest_break = unit(1.1, "grobwidth", textGrob(as.character(names(legend))[longest_break], gp = do.call(gpar, gp)))
+    title_length = unit(1.1, "grobwidth", textGrob("Scale", gp = gpar(fontface = "bold", ...)))
+    legend_width = unit(12, "bigpts") + longest_break * 1.2
+    legend_width = max(title_length, legend_width)
+  }
+  else{
+    legend_width = unit(0, "bigpts")
+  }
+  
+  # Set main title height
+  if(is.na(main)){
+    main_height = unit(0, "npc")
+  }
+  else{
+    main_height = unit(1.5, "grobheight", textGrob(main, gp = gpar(fontsize = 1.3 * fontsize, ...)))
+  }
+  
+  # Column annotations
+  textheight = unit(fontsize, "bigpts")
+  
+  if(!is.na2(annotation_col)){
+    # Column annotation height 
+    annot_col_height = ncol(annotation_col) * (textheight + unit(2, "bigpts")) + unit(2, "bigpts")
+    
+    # Width of the correponding legend
+    t = c(as.vector(as.matrix(annotation_col)), colnames(annotation_col)) 
+    annot_col_legend_width = unit(1.2, "grobwidth", textGrob(t[which.max(nchar(t))], gp = gpar(...))) + unit(12, "bigpts")
+    if(!annotation_legend){
+      annot_col_legend_width = unit(0, "npc")
     }
+  }
+  else{
+    annot_col_height = unit(0, "bigpts")
+    annot_col_legend_width = unit(0, "bigpts")
+  }
+  
+  # Row annotations
+  if(!is.na2(annotation_row)){
+    # Row annotation width 
+    annot_row_width = ncol(annotation_row) * (textheight + unit(2, "bigpts")) + unit(2, "bigpts")
     
-    gp = list(fontsize = fontsize, ...)
-    # Legend position
-    if(!is.na2(legend)){
-        longest_break = which.max(nchar(names(legend)))
-        longest_break = unit(1.1, "grobwidth", textGrob(as.character(names(legend))[longest_break], gp = do.call(gpar, gp)))
-        title_length = unit(1.1, "grobwidth", textGrob("Scale", gp = gpar(fontface = "bold", ...)))
-        legend_width = unit(12, "bigpts") + longest_break * 1.2
-        legend_width = max(title_length, legend_width)
+    # Width of the correponding legend
+    t = c(as.vector(as.matrix(annotation_row)), colnames(annotation_row)) 
+    annot_row_legend_width = unit(1.2, "grobwidth", textGrob(t[which.max(nchar(t))], gp = gpar(...))) + unit(12, "bigpts")
+    if(!annotation_legend){
+      annot_row_legend_width = unit(0, "npc")
     }
-    else{
-        legend_width = unit(0, "bigpts")
-    }
-    
-    # Set main title height
-    if(is.na(main)){
-        main_height = unit(0, "npc")
-    }
-    else{
-        main_height = unit(1.5, "grobheight", textGrob(main, gp = gpar(fontsize = 1.3 * fontsize, ...)))
-    }
-    
-    # Column annotations
-    textheight = unit(fontsize, "bigpts")
-    
-    if(!is.na2(annotation_col)){
-        # Column annotation height 
-        annot_col_height = ncol(annotation_col) * (textheight + unit(2, "bigpts")) + unit(2, "bigpts")
-        
-        # Width of the correponding legend
-        t = c(as.vector(as.matrix(annotation_col)), colnames(annotation_col)) 
-        annot_col_legend_width = unit(1.2, "grobwidth", textGrob(t[which.max(nchar(t))], gp = gpar(...))) + unit(12, "bigpts")
-        if(!annotation_legend){
-            annot_col_legend_width = unit(0, "npc")
-        }
-    }
-    else{
-        annot_col_height = unit(0, "bigpts")
-        annot_col_legend_width = unit(0, "bigpts")
-    }
-    
-    # Row annotations
-    if(!is.na2(annotation_row)){
-        # Row annotation width 
-        annot_row_width = ncol(annotation_row) * (textheight + unit(2, "bigpts")) + unit(2, "bigpts")
-        
-        # Width of the correponding legend
-        t = c(as.vector(as.matrix(annotation_row)), colnames(annotation_row)) 
-        annot_row_legend_width = unit(1.2, "grobwidth", textGrob(t[which.max(nchar(t))], gp = gpar(...))) + unit(12, "bigpts")
-        if(!annotation_legend){
-            annot_row_legend_width = unit(0, "npc")
-        }
-    }
-    else{
-        annot_row_width = unit(0, "bigpts")
-        annot_row_legend_width = unit(0, "bigpts")
-    }
-    
-    annot_legend_width = max(annot_row_legend_width, annot_col_legend_width)
-    
-    # Tree height
-    treeheight_col = unit(treeheight_col, "bigpts") + unit(5, "bigpts")
-    treeheight_row = unit(treeheight_row, "bigpts") + unit(5, "bigpts") 
-    
-    # Set cell sizes
-    if(is.na(cellwidth)){
-        mat_width = unit(1, "npc") - rown_width - legend_width - treeheight_row - annot_row_width - annot_legend_width 
-    }
-    else{
-        mat_width = unit(cellwidth * ncol, "bigpts") + length(gaps_col) * unit(4, "bigpts")
-    }
-    
-    if(is.na(cellheight)){
-        mat_height = unit(1, "npc") - main_height - coln_height - treeheight_col - annot_col_height
-    }
-    else{
-        mat_height = unit(cellheight * nrow, "bigpts") + length(gaps_row) * unit(4, "bigpts")
-    }    
-    
-    # Produce gtable
-    gt = gtable(widths = unit.c(treeheight_row, annot_row_width, mat_width, rown_width, legend_width, annot_legend_width), heights = unit.c(main_height, treeheight_col, annot_col_height, mat_height, coln_height), vp = viewport(gp = do.call(gpar, gp)))
-    
-    cw = convertWidth(mat_width - (length(gaps_col) * unit(4, "bigpts")), "bigpts", valueOnly = T) / ncol
-    ch = convertHeight(mat_height - (length(gaps_row) * unit(4, "bigpts")), "bigpts", valueOnly = T) / nrow
-    
-    # Return minimal cell dimension in bigpts to decide if borders are drawn
-    mindim = min(cw, ch) 
-    
-    res = list(gt = gt, mindim = mindim)
-    
-    return(res)
+  }
+  else{
+    annot_row_width = unit(0, "bigpts")
+    annot_row_legend_width = unit(0, "bigpts")
+  }
+  
+  annot_legend_width = max(annot_row_legend_width, annot_col_legend_width)
+  
+  # Tree height
+  treeheight_col = unit(treeheight_col, "bigpts") + unit(5, "bigpts")
+  treeheight_row = unit(treeheight_row, "bigpts") + unit(5, "bigpts") 
+  
+  # Set cell sizes
+  if(is.na(cellwidth)){
+    mat_width = unit(1, "npc") - rown_width - legend_width - treeheight_row - annot_row_width - annot_legend_width 
+  }
+  else{
+    mat_width = unit(cellwidth * ncol, "bigpts") + length(gaps_col) * unit(4, "bigpts")
+  }
+  
+  if(is.na(cellheight)){
+    mat_height = unit(1, "npc") - main_height - coln_height - treeheight_col - annot_col_height
+  }
+  else{
+    mat_height = unit(cellheight * nrow, "bigpts") + length(gaps_row) * unit(4, "bigpts")
+  }    
+  
+  # Produce gtable
+  gt = gtable(widths = unit.c(treeheight_row, annot_row_width, mat_width, rown_width, legend_width, annot_legend_width), heights = unit.c(main_height, treeheight_col, annot_col_height, mat_height, coln_height), vp = viewport(gp = do.call(gpar, gp)))
+  
+  cw = convertWidth(mat_width - (length(gaps_col) * unit(4, "bigpts")), "bigpts", valueOnly = T) / ncol
+  ch = convertHeight(mat_height - (length(gaps_row) * unit(4, "bigpts")), "bigpts", valueOnly = T) / nrow
+  
+  # Return minimal cell dimension in bigpts to decide if borders are drawn
+  mindim = min(cw, ch) 
+  
+  res = list(gt = gt, mindim = mindim)
+  
+  return(res)
 }
 
-find_coordinates = function(n, gaps, m = 1:n){
-    if(length(gaps) == 0){
-        return(list(coord = unit(m / n, "npc"), size = unit(1 / n, "npc") ))
-    }
-    
-    if(max(gaps) > n){
-        stop("Gaps do not match with matrix size")
-    }
-    
-    size = (1 / n) * (unit(1, "npc") - length(gaps) * unit("4", "bigpts"))
-    
-    gaps2 = apply(sapply(gaps, function(gap, x){x > gap}, m), 1, sum) 
-    coord = m * size + (gaps2 * unit("4", "bigpts"))
-    
-    return(list(coord = coord, size = size))
+# add gap_size to find_coordinates
+find_coordinates = function(n, gaps, m = 1:n, gap_size){
+  
+  if(length(gaps) == 0){
+    return(list(coord = unit(m / n, "npc"), size = unit(1 / n, "npc") ))
+  }
+  
+  if(max(gaps) > n){
+    stop("Gaps do not match with matrix size")
+  }
+  
+  size = (1 / n) * (unit(1, "npc") - length(gaps) * unit(gap_size, "bigpts"))
+  
+  gaps2 = apply(sapply(gaps, function(gap, x){x > gap}, m), 1, sum) 
+  coord = m * size + (gaps2 * unit(gap_size, "bigpts"))
+  
+  return(list(coord = coord, size = size))
 }
 
-draw_dendrogram = function(hc, gaps, horizontal = T){
-    h = hc$height / max(hc$height) / 1.05
-    m = hc$merge
-    o = hc$order
-    n = length(o)
-
-    m[m > 0] = n + m[m > 0] 
-    m[m < 0] = abs(m[m < 0])
-
-    dist = matrix(0, nrow = 2 * n - 1, ncol = 2, dimnames = list(NULL, c("x", "y"))) 
-    dist[1:n, 1] = 1 / n / 2 + (1 / n) * (match(1:n, o) - 1)
-
-    for(i in 1:nrow(m)){
-        dist[n + i, 1] = (dist[m[i, 1], 1] + dist[m[i, 2], 1]) / 2
-        dist[n + i, 2] = h[i]
-    }
-    
-    draw_connection = function(x1, x2, y1, y2, y){
-        res = list(
-            x = c(x1, x1, x2, x2),
-            y = c(y1, y, y, y2)
-        )
-        
-        return(res)
-    }
-    
-    x = rep(NA, nrow(m) * 4)
-    y = rep(NA, nrow(m) * 4)
-    id = rep(1:nrow(m), rep(4, nrow(m)))
-    
-    for(i in 1:nrow(m)){
-        c = draw_connection(dist[m[i, 1], 1], dist[m[i, 2], 1], dist[m[i, 1], 2], dist[m[i, 2], 2], h[i])
-        k = (i - 1) * 4 + 1
-        x[k : (k + 3)] = c$x
-        y[k : (k + 3)] = c$y
-    }
-    
-    x = find_coordinates(n, gaps, x * n)$coord
-    y = unit(y, "npc")
-    
-    if(!horizontal){
-        a = x
-        x = unit(1, "npc") - y
-        y = unit(1, "npc") - a
-    }
-    res = polylineGrob(x = x, y = y, id = id)
+draw_dendrogram = function(hc, gaps, horizontal = T, gap_size){
+  h = hc$height / max(hc$height) / 1.05
+  m = hc$merge
+  o = hc$order
+  n = length(o)
+  
+  m[m > 0] = n + m[m > 0] 
+  m[m < 0] = abs(m[m < 0])
+  
+  dist = matrix(0, nrow = 2 * n - 1, ncol = 2, dimnames = list(NULL, c("x", "y"))) 
+  dist[1:n, 1] = 1 / n / 2 + (1 / n) * (match(1:n, o) - 1)
+  
+  for(i in 1:nrow(m)){
+    dist[n + i, 1] = (dist[m[i, 1], 1] + dist[m[i, 2], 1]) / 2
+    dist[n + i, 2] = h[i]
+  }
+  
+  draw_connection = function(x1, x2, y1, y2, y){
+    res = list(
+      x = c(x1, x1, x2, x2),
+      y = c(y1, y, y, y2)
+    )
     
     return(res)
+  }
+  
+  x = rep(NA, nrow(m) * 4)
+  y = rep(NA, nrow(m) * 4)
+  id = rep(1:nrow(m), rep(4, nrow(m)))
+  
+  for(i in 1:nrow(m)){
+    c = draw_connection(dist[m[i, 1], 1], dist[m[i, 2], 1], dist[m[i, 1], 2], dist[m[i, 2], 2], h[i])
+    k = (i - 1) * 4 + 1
+    x[k : (k + 3)] = c$x
+    y[k : (k + 3)] = c$y
+  }
+  
+  x = find_coordinates(n, gaps, x * n, gap_size)$coord
+  y = unit(y, "npc")
+  
+  if(!horizontal){
+    a = x
+    x = unit(1, "npc") - y
+    y = unit(1, "npc") - a
+  }
+  res = polylineGrob(x = x, y = y, id = id)
+  
+  return(res)
 }
 
-draw_matrix = function(matrix, border_color, gaps_rows, gaps_cols, fmat, fontsize_number, number_color){
-    n = nrow(matrix)
-    m = ncol(matrix)
-    
-    coord_x = find_coordinates(m, gaps_cols)
-    coord_y = find_coordinates(n, gaps_rows)
-    
-    x = coord_x$coord - 0.5 * coord_x$size
-    y = unit(1, "npc") - (coord_y$coord - 0.5 * coord_y$size)
-    
-    coord = expand.grid(y = y, x = x)
-    
-    res = gList()
-    
-    res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = coord_y$size, gp = gpar(fill = matrix, col = border_color))
-    
-    if(attr(fmat, "draw")){
-        res[["text"]] = textGrob(x = coord$x, y = coord$y, label = fmat, gp = gpar(col = number_color, fontsize = fontsize_number))
-    }
-    
-    res = gTree(children = res)
-    
-    return(res)
+draw_matrix = function(matrix, border_color, gaps_rows, gaps_col, fmat, fontsize_number, number_color, gap_size){
+  
+  n = nrow(matrix)
+  m = ncol(matrix)
+  
+  coord_x = find_coordinates(m, gaps_col, gap_size = gap_size)
+  coord_y = find_coordinates(n, gaps_rows, gap_size = gap_size)
+  
+  x = coord_x$coord - 0.5 * coord_x$size
+  y = unit(1, "npc") - (coord_y$coord - 0.5 * coord_y$size)
+  
+  coord = expand.grid(y = y, x = x)
+  
+  res = gList()
+  
+  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = coord_y$size, gp = gpar(fill = matrix, col = border_color))
+  
+  if(attr(fmat, "draw")){
+    res[["text"]] = textGrob(x = coord$x, y = coord$y, label = fmat, gp = gpar(col = number_color, fontsize = fontsize_number))
+  }
+  
+  res = gTree(children = res)
+  
+  return(res)
 }
 
-draw_colnames = function(coln, gaps, ...){
-    coord = find_coordinates(length(coln), gaps)
-    x = coord$coord - 0.5 * coord$size
-    
-    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 0.5, hjust = 0, rot = 270, gp = gpar(...))
-    
-    return(res)
+draw_colnames = function(coln, gaps, gap_size, ...){
+  coord = find_coordinates(length(coln), gaps,gap_size)
+  x = coord$coord - 0.5 * coord$size
+  
+  res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 0.5, hjust = 0, rot = 270, gp = gpar(...))
+  
+  return(res)
 }
 
-draw_rownames = function(rown, gaps, ...){
-    coord = find_coordinates(length(rown), gaps)
-    y = unit(1, "npc") - (coord$coord - 0.5 * coord$size)
-    
-    res = textGrob(rown, x = unit(3, "bigpts"), y = y, vjust = 0.5, hjust = 0, gp = gpar(...))
-    
-    return(res)
+draw_rownames = function(rown, gaps, gap_size, ...){
+  coord = find_coordinates(length(rown), gaps, gap_size)
+  y = unit(1, "npc") - (coord$coord - 0.5 * coord$size)
+  
+  res = textGrob(rown, x = unit(3, "bigpts"), y = y, vjust = 0.5, hjust = 0, gp = gpar(...))
+  
+  return(res)
 }
 
 draw_legend = function(color, breaks, legend, ...){
-    color = color[!is.infinite(breaks)]
-    breaks = breaks[!is.infinite(breaks)]
-    
-    height = min(unit(1, "npc"), unit(150, "bigpts"))
-    
-    legend_pos = (legend - min(breaks)) / (max(breaks) - min(breaks))
-    legend_pos = height * legend_pos + (unit(1, "npc") - height)
-    
-    breaks = (breaks - min(breaks)) / (max(breaks) - min(breaks))
-    breaks = height * breaks + (unit(1, "npc") - height)
-    
-    h = breaks[-1] - breaks[-length(breaks)]
-    
-    rect = rectGrob(x = 0, y = breaks[-length(breaks)], width = unit(10, "bigpts"), height = h, hjust = 0, vjust = 0, gp = gpar(fill = color, col = "#FFFFFF00"))
-    text = textGrob(names(legend), x = unit(14, "bigpts"), y = legend_pos, hjust = 0, gp = gpar(...))
-    
-    res = grobTree(rect, text)
-    
-    return(res)
+  color = color[!is.infinite(breaks)]
+  breaks = breaks[!is.infinite(breaks)]
+  
+  height = min(unit(1, "npc"), unit(150, "bigpts"))
+  
+  legend_pos = (legend - min(breaks)) / (max(breaks) - min(breaks))
+  legend_pos = height * legend_pos + (unit(1, "npc") - height)
+  
+  breaks = (breaks - min(breaks)) / (max(breaks) - min(breaks))
+  breaks = height * breaks + (unit(1, "npc") - height)
+  
+  h = breaks[-1] - breaks[-length(breaks)]
+  
+  rect = rectGrob(x = 0, y = breaks[-length(breaks)], width = unit(10, "bigpts"), height = h, hjust = 0, vjust = 0, gp = gpar(fill = color, col = "#FFFFFF00"))
+  text = textGrob(names(legend), x = unit(14, "bigpts"), y = legend_pos, hjust = 0, gp = gpar(...))
+  
+  res = grobTree(rect, text)
+  
+  return(res)
 }
 
 convert_annotations = function(annotation, annotation_colors){
-    new = annotation
-    for(i in 1:ncol(annotation)){
-        a = annotation[, i]
-        b = annotation_colors[[colnames(annotation)[i]]]
-        if(is.character(a) | is.factor(a)){
-            a = as.character(a)
-            
-            if(length(setdiff(setdiff(a, NA), names(b))) > 0){
-                stop(sprintf("Factor levels on variable %s do not match with annotation_colors", colnames(annotation)[i]))
-            }
-            new[, i] = b[a]
-        }
-        else{
-            a = cut(a, breaks = 100)
-            new[, i] = colorRampPalette(b)(100)[a]
-        }
-    }
-    return(as.matrix(new))
-}
-
-draw_annotations = function(converted_annotations, border_color, gaps, fontsize, horizontal){
-    n = ncol(converted_annotations)
-    m = nrow(converted_annotations)
-    
-    coord_x = find_coordinates(m, gaps)
-    
-    x = coord_x$coord - 0.5 * coord_x$size
-    
-    # y = cumsum(rep(fontsize, n)) - 4 + cumsum(rep(2, n))
-    y = cumsum(rep(fontsize, n)) + cumsum(rep(2, n)) - fontsize / 2 + 1 
-    y = unit(y, "bigpts")
-    
-    if(horizontal){
-        coord = expand.grid(x = x, y = y)
-        res = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = unit(fontsize, "bigpts"), gp = gpar(fill = converted_annotations, col = border_color))
+  new = annotation
+  for(i in 1:ncol(annotation)){
+    a = annotation[, i]
+    b = annotation_colors[[colnames(annotation)[i]]]
+    if(is.character(a) | is.factor(a)){
+      a = as.character(a)
+      
+      if(length(setdiff(setdiff(a, NA), names(b))) > 0){
+        stop(sprintf("Factor levels on variable %s do not match with annotation_colors", colnames(annotation)[i]))
+      }
+      new[, i] = b[a]
     }
     else{
-        a = x
-        x = unit(1, "npc") - y
-        y = unit(1, "npc") - a
-        
-        coord = expand.grid(y = y, x = x)
-        res = rectGrob(x = coord$x, y = coord$y, width = unit(fontsize, "bigpts"), height = coord_x$size, gp = gpar(fill = converted_annotations, col = border_color))
+      a = cut(a, breaks = 100)
+      new[, i] = colorRampPalette(b)(100)[a]
     }
+  }
+  return(as.matrix(new))
+}
+
+draw_annotations = function(converted_annotations, border_color, gaps, fontsize, horizontal, gap_size){
+  n = ncol(converted_annotations)
+  m = nrow(converted_annotations)
+  
+  coord_x = find_coordinates(m, gaps, gap_size)
+  
+  x = coord_x$coord - 0.5 * coord_x$size
+  
+  # y = cumsum(rep(fontsize, n)) - 4 + cumsum(rep(2, n))
+  y = cumsum(rep(fontsize, n)) + cumsum(rep(2, n)) - fontsize / 2 + 1 
+  y = unit(y, "bigpts")
+  
+  if(horizontal){
+    coord = expand.grid(x = x, y = y)
+    res = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = unit(fontsize, "bigpts"), gp = gpar(fill = converted_annotations, col = border_color))
+  }
+  else{
+    a = x
+    x = unit(1, "npc") - y
+    y = unit(1, "npc") - a
     
-    return(res)
+    coord = expand.grid(y = y, x = x)
+    res = rectGrob(x = coord$x, y = coord$y, width = unit(fontsize, "bigpts"), height = coord_x$size, gp = gpar(fill = converted_annotations, col = border_color))
+  }
+  
+  return(res)
 }
 
 draw_annotation_names = function(annotations, fontsize, horizontal){
-    n = ncol(annotations)
+  n = ncol(annotations)
+  
+  x = unit(3, "bigpts")
+  
+  y = cumsum(rep(fontsize, n)) + cumsum(rep(2, n)) - fontsize / 2 + 1 
+  y = unit(y, "bigpts")
+  
+  if(horizontal){
+    res = textGrob(colnames(annotations), x = x, y = y, hjust = 0, gp = gpar(fontsize = fontsize, fontface = 2))
+  }
+  else{
+    a = x
+    x = unit(1, "npc") - y
+    y = unit(1, "npc") - a
     
-    x = unit(3, "bigpts")
-    
-    y = cumsum(rep(fontsize, n)) + cumsum(rep(2, n)) - fontsize / 2 + 1 
-    y = unit(y, "bigpts")
-    
-    if(horizontal){
-        res = textGrob(colnames(annotations), x = x, y = y, hjust = 0, gp = gpar(fontsize = fontsize, fontface = 2))
-    }
-    else{
-        a = x
-        x = unit(1, "npc") - y
-        y = unit(1, "npc") - a
-        
-        res = textGrob(colnames(annotations), x = x, y = y, vjust = 0.5, hjust = 0, rot = 270, gp = gpar(fontsize = fontsize, fontface = 2))
-    }
-    
-    return(res)
+    res = textGrob(colnames(annotations), x = x, y = y, vjust = 0.5, hjust = 0, rot = 270, gp = gpar(fontsize = fontsize, fontface = 2))
+  }
+  
+  return(res)
 }
 
 draw_annotation_legend = function(annotation, annotation_colors, border_color, ...){
-    y = unit(1, "npc")
-    text_height = unit(1, "grobheight", textGrob("FGH", gp = gpar(...)))
+  y = unit(1, "npc")
+  text_height = unit(1, "grobheight", textGrob("FGH", gp = gpar(...)))
+  
+  res = gList()
+  for(i in names(annotation)){
+    res[[i]] = textGrob(i, x = 0, y = y, vjust = 1, hjust = 0, gp = gpar(fontface = "bold", ...))
     
-    res = gList()
-    for(i in names(annotation)){
-        res[[i]] = textGrob(i, x = 0, y = y, vjust = 1, hjust = 0, gp = gpar(fontface = "bold", ...))
-        
-        y = y - 1.5 * text_height
-        if(is.character(annotation[[i]]) | is.factor(annotation[[i]])){
-            n = length(annotation_colors[[i]])
-            yy = y - (1:n - 1) * 2 * text_height
-            
-            res[[paste(i, "r")]] = rectGrob(x = unit(0, "npc"), y = yy, hjust = 0, vjust = 1, height = 2 * text_height, width = 2 * text_height, gp = gpar(col = border_color, fill = annotation_colors[[i]]))
-            res[[paste(i, "t")]] = textGrob(names(annotation_colors[[i]]), x = text_height * 2.4, y = yy - text_height, hjust = 0, vjust = 0.5, gp = gpar(...))
-            
-            y = y - n * 2 * text_height
-            
-        }
-        else{
-            yy = y - 8 * text_height + seq(0, 1, 0.25)[-1] * 8 * text_height
-            h = 8 * text_height * 0.25
-            
-            res[[paste(i, "r")]] = rectGrob(x = unit(0, "npc"), y = yy, hjust = 0, vjust = 1, height = h, width = 2 * text_height, gp = gpar(col = NA, fill = colorRampPalette(annotation_colors[[i]])(4)))
-            res[[paste(i, "r2")]] = rectGrob(x = unit(0, "npc"), y = y, hjust = 0, vjust = 1, height = 8 * text_height, width = 2 * text_height, gp = gpar(col = border_color, fill = NA))
-            
-            txt = rev(range(grid.pretty(range(annotation[[i]], na.rm = TRUE))))
-            yy = y - c(1, 7) * text_height
-            res[[paste(i, "t")]]  = textGrob(txt, x = text_height * 2.4, y = yy, hjust = 0, vjust = 0.5, gp = gpar(...))
-            y = y - 8 * text_height
-        }
-        y = y - 1.5 * text_height
+    y = y - 1.5 * text_height
+    if(is.character(annotation[[i]]) | is.factor(annotation[[i]])){
+      n = length(annotation_colors[[i]])
+      yy = y - (1:n - 1) * 2 * text_height
+      
+      res[[paste(i, "r")]] = rectGrob(x = unit(0, "npc"), y = yy, hjust = 0, vjust = 1, height = 2 * text_height, width = 2 * text_height, gp = gpar(col = border_color, fill = annotation_colors[[i]]))
+      res[[paste(i, "t")]] = textGrob(names(annotation_colors[[i]]), x = text_height * 2.4, y = yy - text_height, hjust = 0, vjust = 0.5, gp = gpar(...))
+      
+      y = y - n * 2 * text_height
+      
     }
-    
-    res = gTree(children = res)
-    
-    return(res)
+    else{
+      yy = y - 8 * text_height + seq(0, 1, 0.25)[-1] * 8 * text_height
+      h = 8 * text_height * 0.25
+      
+      res[[paste(i, "r")]] = rectGrob(x = unit(0, "npc"), y = yy, hjust = 0, vjust = 1, height = h, width = 2 * text_height, gp = gpar(col = NA, fill = colorRampPalette(annotation_colors[[i]])(4)))
+      res[[paste(i, "r2")]] = rectGrob(x = unit(0, "npc"), y = y, hjust = 0, vjust = 1, height = 8 * text_height, width = 2 * text_height, gp = gpar(col = border_color, fill = NA))
+      
+      txt = rev(range(grid.pretty(range(annotation[[i]], na.rm = TRUE))))
+      yy = y - c(1, 7) * text_height
+      res[[paste(i, "t")]]  = textGrob(txt, x = text_height * 2.4, y = yy, hjust = 0, vjust = 0.5, gp = gpar(...))
+      y = y - 8 * text_height
+    }
+    y = y - 1.5 * text_height
+  }
+  
+  res = gTree(children = res)
+  
+  return(res)
 }
 
 draw_main = function(text, ...){
-    res = textGrob(text, gp = gpar(fontface = "bold", ...))
-    
-    return(res)
+  res = textGrob(text, gp = gpar(fontface = "bold", ...))
+  
+  return(res)
 }
 
 vplayout = function(x, y){
-    return(viewport(layout.pos.row = x, layout.pos.col = y))
+  return(viewport(layout.pos.row = x, layout.pos.col = y))
 }
 
-heatmap_motor = function(matrix, border_color, cellwidth, cellheight, tree_col, tree_row, treeheight_col, treeheight_row, filename, width, height, breaks, color, legend, annotation_row, annotation_col, annotation_colors, annotation_legend, annotation_names_row, annotation_names_col, main, fontsize, fontsize_row, fontsize_col, fmat, fontsize_number, number_color, gaps_col, gaps_row, labels_row, labels_col, ...){
-    # Set layout
-    lo = lo(coln = labels_col, rown = labels_row, nrow = nrow(matrix), ncol = ncol(matrix), cellwidth = cellwidth, cellheight = cellheight, treeheight_col = treeheight_col, treeheight_row = treeheight_row, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, annotation_names_row = annotation_names_row, annotation_names_col = annotation_names_col, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, gaps_row = gaps_row, gaps_col = gaps_col,  ...)
-    
-    res = lo$gt
-    mindim = lo$mindim
-    
-    if(!is.na(filename)){
-        if(is.na(height)){
-            height = convertHeight(gtable_height(res), "inches", valueOnly = T)
-        }
-        if(is.na(width)){
-            width = convertWidth(gtable_width(res), "inches", valueOnly = T)
-        }
-        
-        # Get file type
-        r = regexpr("\\.[a-zA-Z]*$", filename)
-        if(r == -1) stop("Improper filename")
-        ending = substr(filename, r + 1, r + attr(r, "match.length"))
+# add draw_gap_col
+draw_gap_col = function(matrix, gap_size, gap_color, gaps_col,gaps_rows=NULL){
+  n = nrow(matrix)
+  m = ncol(matrix)
+  
+  coord_x = find_coordinates(m, gaps_col, gap_size = gap_size)
+  coord_y = find_coordinates(n, gaps_rows, gap_size = gap_size)
+  
+  gaps2 = 1:length(gaps_col) - 1
+  x = gaps_col * coord_x$size + unit(gap_size/2,"bigpts") + gaps2 * unit(gap_size,"bigpts")
+  y = unit(1, "npc") - (coord_y$coord - 0.5 * coord_y$size)
+  
+  coord = expand.grid(y = y, x = x)
+  
+  res = gList()
+  
+  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = unit(gap_size,"bigpts"), height = coord_y$size, gp = gpar(fill = gap_color))
+  
+  return(res)
+}
 
-        f = switch(ending,
-            pdf = function(x, ...) pdf(x, ...),
-            png = function(x, ...) png(x, units = "in", res = 300, ...),
-            jpeg = function(x, ...) jpeg(x, units = "in", res = 300, ...),
-            jpg = function(x, ...) jpeg(x, units = "in", res = 300, ...),
-            tiff = function(x, ...) tiff(x, units = "in", res = 300, compression = "lzw", ...),
-            bmp = function(x, ...) bmp(x, units = "in", res = 300, ...),
-            stop("File type should be: pdf, png, bmp, jpg, tiff")
-        )
-        
-        # print(sprintf("height:%f width:%f", height, width))
-        
-        # gt = heatmap_motor(matrix, cellwidth = cellwidth, cellheight = cellheight, border_color = border_color, tree_col = tree_col, tree_row = tree_row, treeheight_col = treeheight_col, treeheight_row = treeheight_row, breaks = breaks, color = color, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, filename = NA, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, fmat = fmat, fontsize_number =  fontsize_number, number_color = number_color, labels_row = labels_row, labels_col = labels_col, gaps_col = gaps_col, gaps_row = gaps_row, ...)
+# add draw_gap_row
+draw_gap_row = function(matrix, gap_size, gap_color, gaps_rows,gaps_col=NULL){
+  n = nrow(matrix)
+  m = ncol(matrix)
+  
+  coord_x = find_coordinates(m, gaps_col, gap_size = gap_size)
+  coord_y = find_coordinates(n, gaps_rows, gap_size = gap_size)
+  
+  gaps2 = 1:length(gaps_rows) - 1
+  x = coord_x$coord - 0.5 * coord_x$size
+  y = unit(1, "npc") - (gaps_rows * coord_y$size + unit(gap_size/2,"bigpts") + gaps2 * unit(gap_size,"bigpts"))
+  
+  coord = expand.grid(y = y, x = x)
+  
+  res = gList()
+  
+  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = unit(gap_size,"bigpts"), height = coord_y$size, gp = gpar(fill = gap_color))
+  
+  return(res)
+}
 
-        f(filename, height = height, width = width)
-        gt = heatmap_motor(matrix, cellwidth = cellwidth, cellheight = cellheight, border_color = border_color, tree_col = tree_col, tree_row = tree_row, treeheight_col = treeheight_col, treeheight_row = treeheight_row, breaks = breaks, color = color, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, annotation_names_row = annotation_names_row, annotation_names_col = annotation_names_col, filename = NA, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, fmat = fmat, fontsize_number =  fontsize_number, number_color = number_color, labels_row = labels_row, labels_col = labels_col, gaps_col = gaps_col, gaps_row = gaps_row, ...)
-        grid.draw(gt)
-        dev.off()
-        
-        return(gt)
+
+# add draw_gap_col to heatmap_motor
+heatmap_motor = function(matrix, border_color, cellwidth, cellheight, tree_col, tree_row, treeheight_col, treeheight_row, filename, width, height, breaks, color, legend, annotation_row, annotation_col, annotation_colors, annotation_legend, annotation_names_row, annotation_names_col, main, fontsize, fontsize_row, fontsize_col, fmat, fontsize_number, number_color, gaps_col, gaps_row, labels_row, labels_col, gap_color, gap_size, ...){
+  # Set layout
+  lo = lo(coln = labels_col, rown = labels_row, nrow = nrow(matrix), ncol = ncol(matrix), cellwidth = cellwidth, cellheight = cellheight, treeheight_col = treeheight_col, treeheight_row = treeheight_row, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, annotation_names_row = annotation_names_row, annotation_names_col = annotation_names_col, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, gaps_row = gaps_row, gaps_col = gaps_col,  ...)
+  
+  res = lo$gt
+  mindim = lo$mindim
+  
+  if(!is.na(filename)){
+    if(is.na(height)){
+      height = convertHeight(gtable_height(res), "inches", valueOnly = T)
+    }
+    if(is.na(width)){
+      width = convertWidth(gtable_width(res), "inches", valueOnly = T)
     }
     
-    # Omit border color if cell size is too small 
-    if(mindim < 3) border_color = NA
+    # Get file type
+    r = regexpr("\\.[a-zA-Z]*$", filename)
+    if(r == -1) stop("Improper filename")
+    ending = substr(filename, r + 1, r + attr(r, "match.length"))
     
-    # Draw title
-    if(!is.na(main)){
-        elem = draw_main(main, fontsize = 1.3 * fontsize, ...)
-        res = gtable_add_grob(res, elem, t = 1, l = 3, name = "main", clip = "off")
+    f = switch(ending,
+               pdf = function(x, ...) pdf(x, ...),
+               png = function(x, ...) png(x, units = "in", res = 300, ...),
+               jpeg = function(x, ...) jpeg(x, units = "in", res = 300, ...),
+               jpg = function(x, ...) jpeg(x, units = "in", res = 300, ...),
+               tiff = function(x, ...) tiff(x, units = "in", res = 300, compression = "lzw", ...),
+               bmp = function(x, ...) bmp(x, units = "in", res = 300, ...),
+               stop("File type should be: pdf, png, bmp, jpg, tiff")
+    )
+    
+    # print(sprintf("height:%f width:%f", height, width))
+    
+    # gt = heatmap_motor(matrix, cellwidth = cellwidth, cellheight = cellheight, border_color = border_color, tree_col = tree_col, tree_row = tree_row, treeheight_col = treeheight_col, treeheight_row = treeheight_row, breaks = breaks, color = color, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, filename = NA, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, fmat = fmat, fontsize_number =  fontsize_number, number_color = number_color, labels_row = labels_row, labels_col = labels_col, gaps_col = gaps_col, gaps_row = gaps_row, ...)
+    
+    f(filename, height = height, width = width)
+    gt = heatmap_motor(matrix, cellwidth = cellwidth, cellheight = cellheight, border_color = border_color, tree_col = tree_col, tree_row = tree_row, treeheight_col = treeheight_col, treeheight_row = treeheight_row, breaks = breaks, color = color, legend = legend, annotation_col = annotation_col, annotation_row = annotation_row, annotation_colors = annotation_colors, annotation_legend = annotation_legend, annotation_names_row = annotation_names_row, annotation_names_col = annotation_names_col, filename = NA, main = main, fontsize = fontsize, fontsize_row = fontsize_row, fontsize_col = fontsize_col, fmat = fmat, fontsize_number =  fontsize_number, number_color = number_color, labels_row = labels_row, labels_col = labels_col, gaps_col = gaps_col, gaps_row = gaps_row, gap_size = gap_size, gap_color = gap_color, ...)
+    grid.draw(gt)
+    dev.off()
+    
+    return(gt)
+  }
+  
+  # Omit border color if cell size is too small 
+  if(mindim < 3) border_color = NA
+  
+  # Draw title
+  if(!is.na(main)){
+    elem = draw_main(main, fontsize = 1.3 * fontsize, ...)
+    res = gtable_add_grob(res, elem, t = 1, l = 3, name = "main", clip = "off")
+  }
+  
+  # Draw tree for the columns
+  if(!is.na2(tree_col) & treeheight_col != 0){
+    elem = draw_dendrogram(tree_col, gaps_col, horizontal = T,gap_size)
+    res = gtable_add_grob(res, elem, t = 2, l = 3, name = "col_tree")
+  }
+  
+  # Draw tree for the rows
+  if(!is.na2(tree_row) & treeheight_row != 0){
+    elem = draw_dendrogram(tree_row, gaps_row, horizontal = F, gap_size)
+    res = gtable_add_grob(res, elem, t = 4, l = 1, name = "row_tree")
+  }
+  
+  # Draw matrix
+  elem = draw_matrix(matrix, border_color, gaps_row, gaps_col, fmat, fontsize_number, number_color, gap_size)
+  res = gtable_add_grob(res, elem, t = 4, l = 3, clip = "off", name = "matrix")
+  
+  ###### Draw column gaps
+  if(length(gaps_col) > 0) {
+    elem = draw_gap_col(matrix, gap_size, gap_color, gaps_col)
+    res = gtable_add_grob(res, elem, t = 4, l = 3, clip = "off", name = "gap_col")
+  }
+  
+  ##### Draw row gaps
+  if(length(gaps_row) > 0) {
+    elem = draw_gap_row(matrix, gap_size, gap_color, gaps_row)
+    res = gtable_add_grob(res, elem, t = 4, l = 3, clip = "off", name = "gap_row")
+  }
+  
+  # Draw colnames
+  if(length(labels_col) != 0){
+    pars = list(labels_col, gaps = gaps_col, fontsize = fontsize_col, gap_size, ...)
+    elem = do.call(draw_colnames, pars)
+    res = gtable_add_grob(res, elem, t = 5, l = 3, clip = "off", name = "col_names")
+  }
+  
+  # Draw rownames
+  if(length(labels_row) != 0){
+    pars = list(labels_row, gaps = gaps_row, fontsize = fontsize_row, gap_size, ...)
+    elem = do.call(draw_rownames, pars)
+    res = gtable_add_grob(res, elem, t = 4, l = 4, clip = "off", name = "row_names")
+  }
+  
+  # Draw annotation tracks on cols
+  if(!is.na2(annotation_col)){
+    # Draw tracks
+    converted_annotation = convert_annotations(annotation_col, annotation_colors)
+    elem = draw_annotations(converted_annotation, border_color, gaps_col, fontsize, horizontal = T, gap_size)
+    res = gtable_add_grob(res, elem, t = 3, l = 3, clip = "off", name = "col_annotation")
+    
+    # Draw names
+    if(annotation_names_col){
+      elem = draw_annotation_names(annotation_col, fontsize, horizontal = T)
+      res = gtable_add_grob(res, elem, t = 3, l = 4, clip = "off", name = "col_annotation_names")
     }
+  }
+  
+  # Draw annotation tracks on rows
+  if(!is.na2(annotation_row)){
+    # Draw tracks
+    converted_annotation = convert_annotations(annotation_row, annotation_colors)
+    elem = draw_annotations(converted_annotation, border_color, gaps_row, fontsize, horizontal = F)
+    res = gtable_add_grob(res, elem, t = 4, l = 2, clip = "off", name = "row_annotation")
     
-    # Draw tree for the columns
-    if(!is.na2(tree_col) & treeheight_col != 0){
-        elem = draw_dendrogram(tree_col, gaps_col, horizontal = T)
-        res = gtable_add_grob(res, elem, t = 2, l = 3, name = "col_tree")
+    # Draw names
+    if(annotation_names_row){
+      elem = draw_annotation_names(annotation_row, fontsize, horizontal = F)
+      res = gtable_add_grob(res, elem, t = 5, l = 2, clip = "off", name = "row_annotation_names")
     }
+  }
+  
+  # Draw annotation legend
+  annotation = c(annotation_col[length(annotation_col):1], annotation_row[length(annotation_row):1])
+  annotation = annotation[unlist(lapply(annotation, function(x) !is.na2(x)))]
+  
+  if(length(annotation) > 0 & annotation_legend){
+    elem = draw_annotation_legend(annotation, annotation_colors, border_color, fontsize = fontsize, ...)
     
-    # Draw tree for the rows
-    if(!is.na2(tree_row) & treeheight_row != 0){
-        elem = draw_dendrogram(tree_row, gaps_row, horizontal = F)
-        res = gtable_add_grob(res, elem, t = 4, l = 1, name = "row_tree")
-    }
+    t = ifelse(is.null(labels_row), 4, 3)
+    res = gtable_add_grob(res, elem, t = t, l = 6, b = 5, clip = "off", name = "annotation_legend")
+  }
+  
+  # Draw legend
+  if(!is.na2(legend)){
+    elem = draw_legend(color, breaks, legend, fontsize = fontsize, ...)
     
-    # Draw matrix
-    elem = draw_matrix(matrix, border_color, gaps_row, gaps_col, fmat, fontsize_number, number_color)
-    res = gtable_add_grob(res, elem, t = 4, l = 3, clip = "off", name = "matrix")
-    
-    # Draw colnames
-    if(length(labels_col) != 0){
-        pars = list(labels_col, gaps = gaps_col, fontsize = fontsize_col, ...)
-        elem = do.call(draw_colnames, pars)
-        res = gtable_add_grob(res, elem, t = 5, l = 3, clip = "off", name = "col_names")
-    }
-    
-    # Draw rownames
-    if(length(labels_row) != 0){
-        pars = list(labels_row, gaps = gaps_row, fontsize = fontsize_row, ...)
-        elem = do.call(draw_rownames, pars)
-        res = gtable_add_grob(res, elem, t = 4, l = 4, clip = "off", name = "row_names")
-    }
-    
-    # Draw annotation tracks on cols
-    if(!is.na2(annotation_col)){
-        # Draw tracks
-        converted_annotation = convert_annotations(annotation_col, annotation_colors)
-        elem = draw_annotations(converted_annotation, border_color, gaps_col, fontsize, horizontal = T)
-        res = gtable_add_grob(res, elem, t = 3, l = 3, clip = "off", name = "col_annotation")
-        
-        # Draw names
-        if(annotation_names_col){
-            elem = draw_annotation_names(annotation_col, fontsize, horizontal = T)
-            res = gtable_add_grob(res, elem, t = 3, l = 4, clip = "off", name = "col_annotation_names")
-        }
-    }
-    
-    # Draw annotation tracks on rows
-    if(!is.na2(annotation_row)){
-        # Draw tracks
-        converted_annotation = convert_annotations(annotation_row, annotation_colors)
-        elem = draw_annotations(converted_annotation, border_color, gaps_row, fontsize, horizontal = F)
-        res = gtable_add_grob(res, elem, t = 4, l = 2, clip = "off", name = "row_annotation")
-        
-        # Draw names
-        if(annotation_names_row){
-            elem = draw_annotation_names(annotation_row, fontsize, horizontal = F)
-            res = gtable_add_grob(res, elem, t = 5, l = 2, clip = "off", name = "row_annotation_names")
-        }
-    }
-    
-    # Draw annotation legend
-    annotation = c(annotation_col[length(annotation_col):1], annotation_row[length(annotation_row):1])
-    annotation = annotation[unlist(lapply(annotation, function(x) !is.na2(x)))]
-    
-    if(length(annotation) > 0 & annotation_legend){
-        elem = draw_annotation_legend(annotation, annotation_colors, border_color, fontsize = fontsize, ...)
-        
-        t = ifelse(is.null(labels_row), 4, 3)
-        res = gtable_add_grob(res, elem, t = t, l = 6, b = 5, clip = "off", name = "annotation_legend")
-    }
-    
-    # Draw legend
-    if(!is.na2(legend)){
-        elem = draw_legend(color, breaks, legend, fontsize = fontsize, ...)
-        
-        t = ifelse(is.null(labels_row), 4, 3)
-        res = gtable_add_grob(res, elem, t = t, l = 5, b = 5, clip = "off", name = "legend")
-    }
-    
-    return(res)
+    t = ifelse(is.null(labels_row), 4, 3)
+    res = gtable_add_grob(res, elem, t = t, l = 5, b = 5, clip = "off", name = "legend")
+  }
+  
+  return(res)
 }
 
 generate_breaks = function(x, n, center = F){
-    if(center){
-        m = max(abs(c(min(x, na.rm = T), max(x, na.rm = T))))
-        res = seq(-m, m, length.out = n + 1)
-    }
-    else{
-        res = seq(min(x, na.rm = T), max(x, na.rm = T), length.out = n + 1)
-    }
-    
-    return(res)
+  if(center){
+    m = max(abs(c(min(x, na.rm = T), max(x, na.rm = T))))
+    res = seq(-m, m, length.out = n + 1)
+  }
+  else{
+    res = seq(min(x, na.rm = T), max(x, na.rm = T), length.out = n + 1)
+  }
+  
+  return(res)
 }
 
 scale_vec_colours <- function (x, col = rainbow(10), breaks = NA, na_col){
