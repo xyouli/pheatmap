@@ -226,7 +226,7 @@ draw_matrix = function(matrix, border_color, gaps_rows, gaps_col, fmat, fontsize
 }
 
 draw_colnames = function(coln, gaps, gap_size, ...){
-  coord = find_coordinates(length(coln), gaps,gap_size)
+  coord = find_coordinates(length(coln), gaps,gap_size = gap_size)
   x = coord$coord - 0.5 * coord$size
   
   res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 0.5, hjust = 0, rot = 270, gp = gpar(...))
