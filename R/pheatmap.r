@@ -235,7 +235,7 @@ draw_colnames = function(coln, gaps, gap_size, ...){
 }
 
 draw_rownames = function(rown, gaps, gap_size, ...){
-  coord = find_coordinates(length(rown), gaps, gap_size)
+  coord = find_coordinates(length(rown), gaps, gap_size = gap_size)
   y = unit(1, "npc") - (coord$coord - 0.5 * coord$size)
   
   res = textGrob(rown, x = unit(3, "bigpts"), y = y, vjust = 0.5, hjust = 0, gp = gpar(...))
