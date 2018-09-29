@@ -290,7 +290,7 @@ draw_annotations = function(converted_annotations, border_color, gaps, fontsize,
   n = ncol(converted_annotations)
   m = nrow(converted_annotations)
   
-  coord_x = find_coordinates(m, gaps, gap_size)
+  coord_x = find_coordinates(m, gaps, gap_size = gap_size)
   
   x = coord_x$coord - 0.5 * coord_x$size
   
