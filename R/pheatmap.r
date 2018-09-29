@@ -186,7 +186,7 @@ draw_dendrogram = function(hc, gaps, horizontal = T, gap_size){
     y[k : (k + 3)] = c$y
   }
   
-  x = find_coordinates(n, gaps, x * n, gap_size)$coord
+  x = find_coordinates(n, gaps, x * n, gap_size = gap_size)$coord
   y = unit(y, "npc")
   
   if(!horizontal){
