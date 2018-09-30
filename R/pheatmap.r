@@ -540,7 +540,7 @@ heatmap_motor = function(matrix, border_color, cellwidth, cellheight, tree_col, 
   if(!is.na2(annotation_row)){
     # Draw tracks
     converted_annotation = convert_annotations(annotation_row, annotation_colors)
-    elem = draw_annotations(converted_annotation, border_color, gaps_row, fontsize, horizontal = F)
+    elem = draw_annotations(converted_annotation, border_color, gaps_row, fontsize, horizontal = F, gap_size)
     res = gtable_add_grob(res, elem, t = 4, l = 2, clip = "off", name = "row_annotation")
     
     # Draw names
