@@ -401,7 +401,7 @@ draw_gap_col = function(matrix, gap_size, gap_color, gaps_col,gaps_rows=NULL){
   
   res = gList()
   
-  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = unit(gap_size,"bigpts"), height = coord_y$size, gp = gpar(fill = gap_color))
+  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = unit(gap_size,"bigpts"), height = coord_y$size, gp = gpar(fill = gap_color, col = NA))
   
   return(res)
 }
@@ -422,7 +422,7 @@ draw_gap_row = function(matrix, gap_size, gap_color, gaps_rows,gaps_col=NULL){
   
   res = gList()
   
-  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = unit(gap_size,"bigpts"), gp = gpar(fill = gap_color))
+  res[["rect"]] = rectGrob(x = coord$x, y = coord$y, width = coord_x$size, height = unit(gap_size,"bigpts"), gp = gpar(fill = gap_color, col = NA))
   
   return(res)
 }
