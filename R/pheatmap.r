@@ -231,12 +231,13 @@ draw_colnames = function(coln, gaps, gap_size, angle, ...){
   
   if(angle == 0) {
     res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 1, hjust = 0.5, rot = angle, gp = gpar(...))
-  } else if (angle %in% c(45, 90)) {
+  } else if (angle == 45) {
     res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 1, hjust = 1, rot = angle, gp = gpar(...))
+  } else if (angle == 90) {
+    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 0.5, hjust = 1, rot = angle, gp = gpar(...))
   } else if (angle == 270) {
     res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3, "bigpts"), vjust = 0.5, hjust = 0, rot = angle, gp = gpar(...))
   }
-     
   return(res)
 }
 
